@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        .user-name {
+            font-weight: bold;
+        }
+        .message-balloon {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .message-container {
+            margin-bottom: 10px;
+            overflow-wrap: break-word; /* Romper palabras largas y llevarlas a la línea siguiente */
+            max-width: 80%; /* Establecer un ancho máximo para los mensajes */
+            white-space: pre-line; /* Manejar el salto de línea */
+            word-break: break-all; /* Forzar el quiebre de palabras largas */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-body">
+            <div id="message-area"></div>
+            <div class="mb-2 mt-2" id="welcome-message"></div>
+            <div class="mb-3 d-flex align-items-center">
+                <input type="text" class="form-control" id="messageInput" placeholder="Introduce tu mensaje">
+                <button onclick="sendMessage()" class="btn btn-primary ms-2">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        let usernameInput = localStorage.getItem("username");
+        let messageInput = document.getElementById("messageInput");
+        let messageArea = document.getElementById("message-area");
+        let welcomeMessage = document.getElementById("welcome-message");
+
+        if (!usernameInput || !messageInput || !messageArea || !welcomeMessage) {
+            console.error("Elementos no encontrados. Asegúrate de que los ids sean correctos.");
+            return;
+        }
+
+        welcomeMessage.textContent = "Usuario: " + usernameInput;
+
+        let socket = new SockJS("http://localhost:8080/chat");
+
+        socket.onerror = function(event) {
+            console.error("Error en la conexión WebSocket:", event);
+        };
+
+        socket.onmessage = function(event) {
+            let messageData = JSON.parse(event.data);
+
+            // Crear el mensaje solo si hay un mensaje no vacío
+            if (messageData.message.trim() !== '') {
+                let messageContainer = document.createElement("div");
+                messageContainer.classList.add("message-container");
+
+                let userNameElement = document.createElement("div");
+                userNameElement.classList.add("user-name");
+                userNameElement.textContent = messageData.username;
+
+                let messageBalloon = document.createElement("div");
+                messageBalloon.classList.add("message-balloon");
+                messageBalloon.textContent = messageData.message;
+
+                messageContainer.appendChild(userNameElement);
+                messageContainer.appendChild(messageBalloon);
+
+                messageArea.appendChild(messageContainer);
+            }
+        };
+
+        window.sendMessage = function() {
+            let message = messageInput.value;
+
+            if (!message) {
+                console.error("El mensaje es obligatorio.");
+                return;
+            }
+
+            let fullMessage = {
+                username: usernameInput,
+                message: message
+            };
+
+            socket.send(JSON.stringify(fullMessage));
+            messageInput.value = '';
+        };
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+</body>
+</html>
+
+
+
+
+
